@@ -111,7 +111,11 @@ If they want recommendations or refinements, present a shortlist from the retrie
 If they want to compare, compare the relevant assessments from the retrieved context.
 Explain why they match the user's needs. Do NOT hallucinate assessments not in the context.
 
-CRITICAL: Whenever you mention an assessment, you MUST format it as a markdown link using the URL provided in the retrieved context (e.g., [SHL Java Coding Test](https://...)). If there is no URL, just use bold text.
+CRITICAL INSTRUCTIONS FOR LINKS:
+1. You MUST use the EXACT URL provided in the `Retrieved Assessments` context under the `URL:` field.
+2. DO NOT make up, guess, or hallucinate URLs (e.g., do not use example.com).
+3. Format the assessment name as a markdown link ONLY using the provided URL: [Assessment Name](EXACT URL).
+4. If there is no URL in the context, just use **Bold Text** instead of a link.
 
 Set `end_of_conversation` to true ONLY if you are providing a final satisfactory shortlist and no further refinement is needed.
 """),
