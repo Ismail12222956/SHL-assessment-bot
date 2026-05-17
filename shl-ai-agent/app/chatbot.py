@@ -35,7 +35,7 @@ vectorstore = load_vectorstore()
 class AgentDecision(BaseModel):
     action: str = Field(description="One of: 'converse', 'refuse', 'clarify', 'retrieve'")
     reply: str = Field(default="", description="Response to user if 'refuse', 'clarify', or 'converse'. Empty if 'retrieve'.")
-    search_query: str = Field(default="", description="Search query to find assessments if 'retrieve'. Empty otherwise.")
+    search_query: str = Field(description="Search query to find assessments if 'retrieve'. MUST be provided if action is 'retrieve'.")
 
 class FinalResponse(BaseModel):
     reply: str = Field(description="The response presenting or comparing the assessments.")
@@ -60,9 +60,9 @@ Choose 'action' from:
 - 'converse': The user is just saying hello, ok, thanks, or goodbye.
 
 CRITICAL RULES:
-1. NEVER choose 'converse' or 'clarify' to tell the user "I am searching" or "Give me a moment". If you need to search, you MUST choose 'retrieve' and provide a `search_query` immediately.
+1. NEVER choose 'converse' or 'clarify' to tell the user "I am searching" or "Give me a moment". If you need to search, you MUST choose 'retrieve' and provide a detailed `search_query` immediately.
 2. If the user mentions any specific job (like "backend developer", "sales", "support") or skill ("Java", "communication", "aptitude"), YOU MUST CHOOSE 'retrieve'.
-3. If 'retrieve', leave `reply` empty.
+3. If 'retrieve', leave `reply` empty. You MUST provide a detailed `search_query`.
 4. If 'converse', write a short polite response in `reply`.
 5. If 'refuse', write a polite refusal in `reply`.
 6. If 'clarify', ask a short question in `reply`.
