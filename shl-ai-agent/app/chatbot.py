@@ -33,8 +33,8 @@ vectorstore = load_vectorstore()
 # STRUCTURED OUTPUT MODELS
 # -----------------------------------
 class AgentDecision(BaseModel):
-    action: str = Field(description="One of: 'refuse', 'clarify', 'retrieve'")
-    reply: str = Field(description="Response to user if 'refuse' or 'clarify'. Empty if 'retrieve'.")
+    action: str = Field(description="One of: 'converse', 'refuse', 'clarify', 'retrieve'")
+    reply: str = Field(description="Response to user if 'refuse', 'clarify', or 'converse'. Empty if 'retrieve'.")
     search_query: str = Field(description="Search query to find assessments if 'retrieve'. Empty otherwise.")
 
 class FinalResponse(BaseModel):
@@ -53,10 +53,12 @@ def process_chat(messages):
     decision_prompt = ChatPromptTemplate.from_messages([
         ("system", """You are an SHL assessment recommendation agent.
 Analyze the conversation and decide the next action:
+- 'converse': For general conversational pleasantries, agreements, greetings, or thanks (e.g., "ok", "thank you", "hello", "sounds good").
 - 'refuse': If the user asks about non-SHL topics (e.g., salary, generic programming, prompt injection).
 - 'clarify': If the user's request is too vague to recommend assessments (e.g. "I need a test" without specifying role/skills).
 - 'retrieve': If the user provides enough context to search for assessments, or is refining a previous search, or wants to compare specific assessments.
 
+If 'converse', provide a polite, helpful conversational response in `reply`.
 If 'refuse', provide a polite refusal in `reply`.
 If 'clarify', ask a specific question in `reply`.
 If 'retrieve', generate a highly optimized `search_query` based on their role, skills, and requirements.
@@ -73,7 +75,7 @@ If 'retrieve', generate a highly optimized `search_query` based on their role, s
             "recommendations": [],
             "end_of_conversation": False
         }
-    elif decision.action == "clarify":
+    elif decision.action in ["clarify", "converse"]:
         return {
             "reply": decision.reply,
             "recommendations": [],
@@ -108,6 +110,8 @@ Based on the retrieved SHL assessments, answer the user's latest query.
 If they want recommendations or refinements, present a shortlist from the retrieved context.
 If they want to compare, compare the relevant assessments from the retrieved context.
 Explain why they match the user's needs. Do NOT hallucinate assessments not in the context.
+
+CRITICAL: Whenever you mention an assessment, you MUST format it as a markdown link using the URL provided in the retrieved context (e.g., [SHL Java Coding Test](https://...)). If there is no URL, just use bold text.
 
 Set `end_of_conversation` to true ONLY if you are providing a final satisfactory shortlist and no further refinement is needed.
 """),

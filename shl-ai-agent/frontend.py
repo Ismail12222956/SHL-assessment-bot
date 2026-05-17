@@ -164,22 +164,7 @@ if prompt := st.chat_input("Ask about candidate assessments... (e.g. 'I need a c
             data = process_chat(pydantic_messages)
             
             assistant_reply = data.get("reply", "")
-            recommendations = data.get("recommendations", [])
-            
             final_response = assistant_reply
-            
-            if recommendations:
-                final_response += "\n\n### Recommended Assessments\n\n"
-                for rec in recommendations:
-                    # Fallbacks for empty fields
-                    name = rec.get("name") or "Unnamed Assessment"
-                    t_type = rec.get("test_type") or "General"
-                    url = rec.get("url") or ""
-                    
-                    if url:
-                        final_response += f"- **[{name}]({url})** ({t_type})\n"
-                    else:
-                        final_response += f"- **{name}** ({t_type})\n"
             
             message_placeholder.markdown(final_response)
             st.session_state.messages.append({"role": "assistant", "content": final_response})
