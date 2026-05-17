@@ -19,7 +19,7 @@ load_dotenv(dotenv_path=env_path)
 # GROQ MODEL
 # -----------------------------------
 llm = ChatGroq(
-    model="llama-3.1-8b-instant",
+    model="llama-3.3-70b-versatile",
     temperature=0.0,
     api_key=os.getenv("GROQ_API_KEY")
 )
@@ -34,8 +34,8 @@ vectorstore = load_vectorstore()
 # -----------------------------------
 class AgentDecision(BaseModel):
     action: str = Field(description="One of: 'converse', 'refuse', 'clarify', 'retrieve'")
-    reply: str = Field(description="Response to user if 'refuse', 'clarify', or 'converse'. Empty if 'retrieve'.")
-    search_query: str = Field(description="Search query to find assessments if 'retrieve'. Empty otherwise.")
+    reply: str = Field(default="", description="Response to user if 'refuse', 'clarify', or 'converse'. Empty if 'retrieve'.")
+    search_query: str = Field(default="", description="Search query to find assessments if 'retrieve'. Empty otherwise.")
 
 class FinalResponse(BaseModel):
     reply: str = Field(description="The response presenting or comparing the assessments.")
