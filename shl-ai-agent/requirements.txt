@@ -6,6 +6,8 @@ sentence-transformers
 beautifulsoup4
 requests
 pydantic
+fastapi
+uvicorn
 python-dotenv
 langchain-groq
 streamlit

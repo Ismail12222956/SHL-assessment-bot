@@ -32,6 +32,11 @@ vectorstore = load_vectorstore()
 # -----------------------------------
 # STRUCTURED OUTPUT MODELS
 # -----------------------------------
+class AssessmentRecommendation(BaseModel):
+    name: str = Field(description="Name of the assessment exactly as it appears in context")
+    url: str = Field(description="URL of the assessment exactly as it appears in context")
+    test_type: str = Field(description="Test category code (e.g., 'K' for Knowledge & Skills, 'P' for Personality & Behavior, 'A' for Ability & Aptitude, 'S' for Simulations)")
+
 class AgentDecision(BaseModel):
     action: str = Field(description="One of: 'converse', 'refuse', 'clarify', 'retrieve'")
     reply: str = Field(default="", description="Response to user if 'refuse', 'clarify', or 'converse'. Empty if 'retrieve'.")
@@ -39,6 +44,7 @@ class AgentDecision(BaseModel):
 
 class FinalResponse(BaseModel):
     reply: str = Field(description="The response presenting or comparing the assessments.")
+    recommendations: list[AssessmentRecommendation] = Field(default_factory=list, description="List of assessments recommended. MUST be populated exactly from the context if assessments are recommended.")
     end_of_conversation: bool = Field(description="True ONLY if the task is complete and a final shortlist is provided.")
 
 # -----------------------------------
@@ -91,8 +97,6 @@ CRITICAL RULES:
     docs = vectorstore.similarity_search(decision.search_query, k=10)
     
     docs_context = ""
-    recommendations_list = []
-    
     for doc in docs:
         meta = doc.metadata
         name = meta.get("name", "Unknown")
@@ -100,12 +104,14 @@ CRITICAL RULES:
         test_type = meta.get("categories", "")
         desc = meta.get("description", "")
         
-        docs_context += f"Name: {name}\nType: {test_type}\nURL: {url}\nDescription: {desc}\n\n"
-        recommendations_list.append({
-            "name": name,
-            "url": url,
-            "test_type": test_type
-        })
+        # We simplify test_type to just the first letter of the category if available, or 'K' for Knowledge
+        # Let's map it based on string matching for the prompt context
+        if "Personality" in test_type: type_code = "P"
+        elif "Ability" in test_type or "Aptitude" in test_type: type_code = "A"
+        elif "Simulations" in test_type: type_code = "S"
+        else: type_code = "K"
+        
+        docs_context += f"Name: {name}\nURL: {url}\nType: {type_code}\nDescription: {desc}\n\n"
         
     # 4. Generate Final Response Step
     structured_final_llm = llm.with_structured_output(FinalResponse)
@@ -119,6 +125,7 @@ CRITICAL RULES:
 3. You MUST format the assessment name as a markdown link using the EXACT URL provided in the context under the `URL:` field: [Assessment Name](EXACT URL).
 4. DO NOT make up, guess, or hallucinate URLs (e.g., do not use example.com).
 5. If there is no URL in the context, use **Bold Text** instead of a link.
+6. Populate the `recommendations` list ONLY with the specific assessments you have chosen to recommend. If you refuse or cannot find matches, leave the list empty. Include exactly the Name, URL, and Type from the context.
 
 Set `end_of_conversation` to true ONLY if you are providing a final satisfactory shortlist and no further refinement is needed.
 """),
@@ -127,8 +134,10 @@ Set `end_of_conversation` to true ONLY if you are providing a final satisfactory
     
     final_res = structured_final_llm.invoke(final_prompt.format(history=history_str, context=docs_context))
     
+    recs = [r.dict() for r in final_res.recommendations] if hasattr(final_res, "recommendations") and final_res.recommendations else []
+    
     return {
         "reply": final_res.reply,
-        "recommendations": recommendations_list,
+        "recommendations": recs,
         "end_of_conversation": final_res.end_of_conversation
     }
